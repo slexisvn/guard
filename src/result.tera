@@ -1,0 +1,42 @@
+from .utils import label_path
+
+fn issue(path: string, code: string, message: string, expected: string = "", received: string = ""):
+  return {
+    path: path,
+    code: code,
+    message: message,
+    expected: expected,
+    received: received,
+  }
+
+fn ok(value):
+  return { ok: true, value: value, issues: [] }
+
+fn invalid(issues):
+  return { ok: false, value: null, issues: issues }
+
+fn from_issues(value, issues):
+  if issues.length == 0:
+    return ok(value)
+  return invalid(issues)
+
+fn validate(schema, value):
+  return schema.validate(value, "")
+
+fn is_valid(schema, value) -> bool:
+  return validate(schema, value).ok
+
+fn parse(schema, value):
+  result = validate(schema, value)
+  if not result.ok:
+    throw format_issues(result.issues)
+  return result.value
+
+fn format_issue(item) -> string:
+  return `${label_path(item.path)}: ${item.message}`
+
+fn format_issues(issues) -> string:
+  lines = []
+  for item of issues:
+    lines.push(format_issue(item))
+  return lines.join("\n")

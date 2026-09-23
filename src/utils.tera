@@ -1,0 +1,52 @@
+fn kind_of(value) -> string:
+  raw = typeof value
+  if raw == "undefined":
+    return "undefined"
+  if value === null:
+    return "null"
+  if Array.isArray(value):
+    return "array"
+  return raw
+
+fn is_plain_object(value) -> bool:
+  return kind_of(value) == "object"
+
+fn is_integer(value) -> bool:
+  if typeof value != "number":
+    return false
+  return value == Math.floor(value)
+
+fn path_key(path: string, key: string) -> string:
+  if path == "":
+    return key
+  return path + "." + key
+
+fn path_index(path: string, index: int) -> string:
+  suffix = `[${index}]`
+  if path == "":
+    return suffix
+  return path + suffix
+
+fn label_path(path: string) -> string:
+  if path == "":
+    return "$"
+  return path
+
+fn describe_value(value) -> string:
+  k = kind_of(value)
+  if k == "string":
+    return value
+  if k == "undefined":
+    return "undefined"
+  if k == "null":
+    return "null"
+  return String(value)
+
+fn has_key(value, key: string) -> bool:
+  if not is_plain_object(value):
+    return false
+  return key in value
+
+fn push_all(target, source) -> void:
+  for item of source:
+    target.push(item)

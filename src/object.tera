@@ -1,0 +1,44 @@
+from .result import issue, ok, invalid
+from .utils import kind_of, is_plain_object, path_key, push_all
+
+class ObjectSchema:
+  public constructor(shape):
+    this.shape = shape
+    this.mode = "passthrough"
+
+  public strict():
+    this.mode = "strict"
+    return this
+
+  public passthrough():
+    this.mode = "passthrough"
+    return this
+
+  public extend(extra_shape):
+    for key of Object.keys(extra_shape):
+      this.shape[key] = extra_shape[key]
+    return this
+
+  public validate(value, path: string = ""):
+    issues = []
+    if not is_plain_object(value):
+      issues.push(issue(path, "object", "value must be an object", "object", kind_of(value)))
+      return invalid(issues)
+
+    for key of Object.keys(this.shape):
+      schema = this.shape[key]
+      result = schema.validate(value[key], path_key(path, key))
+      if not result.ok:
+        push_all(issues, result.issues)
+
+    if this.mode == "strict":
+      for key of Object.keys(value):
+        if not (key in this.shape):
+          issues.push(issue(path_key(path, key), "unknown_key", `unknown key '${key}'`, "known key", key))
+
+    if issues.length == 0:
+      return ok(value)
+    return invalid(issues)
+
+fn object(shape):
+  return ObjectSchema(shape)

@@ -1,0 +1,113 @@
+from .result import issue, ok, invalid
+from .utils import kind_of, describe_value
+
+class AnySchema:
+  public validate(value, path: string = ""):
+    return ok(value)
+
+class LiteralSchema:
+  public constructor(expected):
+    this.expected = expected
+
+  public validate(value, path: string = ""):
+    if value === this.expected:
+      return ok(value)
+    return invalid([
+      issue(
+        path,
+        "literal",
+        `value must equal ${describe_value(this.expected)}`,
+        describe_value(this.expected),
+        describe_value(value),
+      ),
+    ])
+
+class EnumSchema:
+  public constructor(values):
+    this.values = values
+
+  public validate(value, path: string = ""):
+    for candidate of this.values:
+      if value === candidate:
+        return ok(value)
+    return invalid([
+      issue(
+        path,
+        "one_of",
+        `value must be one of ${this.values.join(", ")}`,
+        this.values.join(", "),
+        describe_value(value),
+      ),
+    ])
+
+class UnionSchema:
+  public constructor(schemas):
+    this.schemas = schemas
+
+  public validate(value, path: string = ""):
+    collected = []
+    for schema of this.schemas:
+      result = schema.validate(value, path)
+      if result.ok:
+        return result
+      for item of result.issues:
+        collected.push(item.message)
+    return invalid([
+      issue(
+        path,
+        "union",
+        `value must match one of ${this.schemas.length} schemas`,
+        "union",
+        kind_of(value),
+      ),
+    ])
+
+class OptionalSchema:
+  public constructor(inner):
+    this.inner = inner
+
+  public validate(value, path: string = ""):
+    if typeof value == "undefined":
+      return ok(value)
+    return this.inner.validate(value, path)
+
+class NullableSchema:
+  public constructor(inner):
+    this.inner = inner
+
+  public validate(value, path: string = ""):
+    if value === null:
+      return ok(value)
+    return this.inner.validate(value, path)
+
+class NullishSchema:
+  public constructor(inner):
+    this.inner = inner
+
+  public validate(value, path: string = ""):
+    if typeof value == "undefined":
+      return ok(value)
+    if value === null:
+      return ok(value)
+    return this.inner.validate(value, path)
+
+fn any():
+  return AnySchema()
+
+fn literal(value):
+  return LiteralSchema(value)
+
+fn one_of(values):
+  return EnumSchema(values)
+
+fn union(schemas):
+  return UnionSchema(schemas)
+
+fn optional(schema):
+  return OptionalSchema(schema)
+
+fn nullable(schema):
+  return NullableSchema(schema)
+
+fn nullish(schema):
+  return NullishSchema(schema)

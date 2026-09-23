@@ -1,0 +1,125 @@
+from .result import issue, ok, invalid
+from .utils import kind_of, describe_value
+
+class StringSchema:
+  public constructor():
+    this.rules = []
+
+  public min(size: int, message: string = ""):
+    this.rules.push({ kind: "min", value: size, message: message })
+    return this
+
+  public max(size: int, message: string = ""):
+    this.rules.push({ kind: "max", value: size, message: message })
+    return this
+
+  public length(size: int, message: string = ""):
+    this.rules.push({ kind: "length", value: size, message: message })
+    return this
+
+  public nonempty(message: string = ""):
+    return this.min(1, message)
+
+  public includes(text: string, message: string = ""):
+    this.rules.push({ kind: "includes", value: text, message: message })
+    return this
+
+  public starts_with(text: string, message: string = ""):
+    this.rules.push({ kind: "starts_with", value: text, message: message })
+    return this
+
+  public ends_with(text: string, message: string = ""):
+    this.rules.push({ kind: "ends_with", value: text, message: message })
+    return this
+
+  public email(message: string = ""):
+    this.rules.push({ kind: "email", value: "", message: message })
+    return this
+
+  public one_of(values, message: string = ""):
+    this.rules.push({ kind: "one_of", value: values, message: message })
+    return this
+
+  public validate(value, path: string = ""):
+    issues = []
+    if typeof value != "string":
+      issues.push(issue(path, "string", "value must be a string", "string", kind_of(value)))
+      return invalid(issues)
+
+    for rule of this.rules:
+      if rule.kind == "min" and value.length < rule.value:
+        msg = rule.message
+        if msg == "":
+          msg = `string must contain at least ${rule.value} ${_characters(rule.value)}`
+        issues.push(issue(path, "min", msg, `length >= ${rule.value}`, String(value.length)))
+      else if rule.kind == "max" and value.length > rule.value:
+        msg = rule.message
+        if msg == "":
+          msg = `string must contain at most ${rule.value} ${_characters(rule.value)}`
+        issues.push(issue(path, "max", msg, `length <= ${rule.value}`, String(value.length)))
+      else if rule.kind == "length" and value.length != rule.value:
+        msg = rule.message
+        if msg == "":
+          msg = `string must contain exactly ${rule.value} ${_characters(rule.value)}`
+        issues.push(issue(path, "length", msg, `length == ${rule.value}`, String(value.length)))
+      else if rule.kind == "includes" and not value.includes(rule.value):
+        msg = rule.message
+        if msg == "":
+          msg = `string must include '${rule.value}'`
+        issues.push(issue(path, "includes", msg, rule.value, value))
+      else if rule.kind == "starts_with" and value.slice(0, rule.value.length) != rule.value:
+        msg = rule.message
+        if msg == "":
+          msg = `string must start with '${rule.value}'`
+        issues.push(issue(path, "starts_with", msg, rule.value, value))
+      else if rule.kind == "ends_with":
+        actual = value.slice(value.length - rule.value.length)
+        if actual != rule.value:
+          msg = rule.message
+          if msg == "":
+            msg = `string must end with '${rule.value}'`
+          issues.push(issue(path, "ends_with", msg, rule.value, value))
+      else if rule.kind == "email" and not _looks_like_email(value):
+        msg = rule.message
+        if msg == "":
+          msg = "string must be a valid email address"
+        issues.push(issue(path, "email", msg, "email", value))
+      else if rule.kind == "one_of":
+        matched = false
+        for option of rule.value:
+          if value === option:
+            matched = true
+        if not matched:
+          msg = rule.message
+          if msg == "":
+            msg = `string must be one of ${rule.value.join(", ")}`
+          issues.push(issue(path, "one_of", msg, rule.value.join(", "), describe_value(value)))
+
+    if issues.length == 0:
+      return ok(value)
+    return invalid(issues)
+
+fn _looks_like_email(value: string) -> bool:
+  text = value.trim()
+  parts = text.split("@")
+  if parts.length != 2:
+    return false
+  local = parts[0]
+  domain = parts[1]
+  if local.length == 0 or domain.length < 3:
+    return false
+  if domain.includes(" "):
+    return false
+  if not domain.includes("."):
+    return false
+  if domain.slice(0, 1) == "." or domain.slice(domain.length - 1) == ".":
+    return false
+  return true
+
+fn _characters(size: int) -> string:
+  if size == 1:
+    return "character"
+  return "characters"
+
+fn string():
+  return StringSchema()

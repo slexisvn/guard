@@ -1,0 +1,39 @@
+from .result import issue, ok, invalid
+from .utils import kind_of, describe_value
+
+class BooleanSchema:
+  public constructor():
+    this.rules = []
+
+  public true_only(message: string = ""):
+    this.rules.push({ kind: "true", message: message })
+    return this
+
+  public false_only(message: string = ""):
+    this.rules.push({ kind: "false", message: message })
+    return this
+
+  public validate(value, path: string = ""):
+    issues = []
+    if typeof value != "boolean":
+      issues.push(issue(path, "boolean", "value must be a boolean", "boolean", kind_of(value)))
+      return invalid(issues)
+
+    for rule of this.rules:
+      if rule.kind == "true" and value !== true:
+        msg = rule.message
+        if msg == "":
+          msg = "value must be true"
+        issues.push(issue(path, "true", msg, "true", describe_value(value)))
+      else if rule.kind == "false" and value !== false:
+        msg = rule.message
+        if msg == "":
+          msg = "value must be false"
+        issues.push(issue(path, "false", msg, "false", describe_value(value)))
+
+    if issues.length == 0:
+      return ok(value)
+    return invalid(issues)
+
+fn boolean():
+  return BooleanSchema()
