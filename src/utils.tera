@@ -1,4 +1,4 @@
-fn kind_of(value) -> string:
+fn kind_of(value: unknown) -> string:
   raw = typeof value
   if raw == "undefined":
     return "undefined"
@@ -8,10 +8,10 @@ fn kind_of(value) -> string:
     return "array"
   return raw
 
-fn is_plain_object(value) -> bool:
+fn is_plain_object(value: unknown) -> bool:
   return kind_of(value) == "object"
 
-fn is_integer(value) -> bool:
+fn is_integer(value: unknown) -> bool:
   if typeof value != "number":
     return false
   return value == Math.floor(value)
@@ -32,7 +32,7 @@ fn label_path(path: string) -> string:
     return "$"
   return path
 
-fn describe_value(value) -> string:
+fn describe_value(value: unknown) -> string:
   k = kind_of(value)
   if k == "string":
     return value
@@ -42,11 +42,11 @@ fn describe_value(value) -> string:
     return "null"
   return String(value)
 
-fn has_key(value, key: string) -> bool:
+fn has_key(value: unknown, key: string) -> bool:
   if not is_plain_object(value):
     return false
   return key in value
 
-fn push_all(target, source) -> void:
+fn push_all<T>(target: T[], source: T[]) -> void:
   for item of source:
     target.push(item)

@@ -1,42 +1,46 @@
 from .result import issue, ok, invalid
+from .types import GuardIssue, GuardResultOf, GuardRule, NumberGuard
 from .utils import kind_of, is_integer, describe_value
 
-class NumberSchema:
+class NumberSchema implements NumberGuard:
+  private rules: GuardRule[] = []
+
   public constructor():
     this.rules = []
+    this.int = (message: string = "") => _number_int(this, message)
 
-  public min(size: float, message: string = ""):
+  public min(size: float, message: string = "") -> NumberGuard:
     this.rules.push({ kind: "min", value: size, message: message })
     return this
 
-  public max(size: float, message: string = ""):
+  public max(size: float, message: string = "") -> NumberGuard:
     this.rules.push({ kind: "max", value: size, message: message })
     return this
 
-  public int(message: string = ""):
+  public _add_integer_rule(message: string = "") -> NumberGuard:
     this.rules.push({ kind: "int", value: 0.0, message: message })
     return this
 
-  public positive(message: string = ""):
+  public positive(message: string = "") -> NumberGuard:
     this.rules.push({ kind: "positive", value: 0.0, message: message })
     return this
 
-  public nonnegative(message: string = ""):
+  public nonnegative(message: string = "") -> NumberGuard:
     this.rules.push({ kind: "nonnegative", value: 0.0, message: message })
     return this
 
-  public multiple_of(step: float, message: string = ""):
+  public multiple_of(step: float, message: string = "") -> NumberGuard:
     this.rules.push({ kind: "multiple_of", value: step, message: message })
     return this
 
-  public validate(value, path: string = ""):
-    issues = []
+  public validate(value: unknown, path: string = "") -> GuardResultOf<float>:
+    issues: GuardIssue[] = []
     if typeof value != "number":
       issues.push(issue(path, "number", "value must be a number", "number", kind_of(value)))
-      return invalid(issues)
+      return invalid<float>(issues)
     if value != value:
       issues.push(issue(path, "number", "value must not be NaN", "number", "NaN"))
-      return invalid(issues)
+      return invalid<float>(issues)
 
     for rule of this.rules:
       if rule.kind == "min" and value < rule.value:
@@ -76,8 +80,11 @@ class NumberSchema:
             issues.push(issue(path, "multiple_of", msg, `multiple of ${rule.value}`, describe_value(value)))
 
     if issues.length == 0:
-      return ok(value)
-    return invalid(issues)
+      return ok<float>(value)
+    return invalid<float>(issues)
 
-fn number():
+fn make_number() -> NumberGuard:
   return NumberSchema()
+
+fn _number_int(schema: NumberSchema, message: string = "") -> NumberGuard:
+  return schema._add_integer_rule(message)

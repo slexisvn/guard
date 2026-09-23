@@ -1,36 +1,39 @@
-from .core import any
 from .result import issue, ok, invalid
+from .types import ArrayGuard, GuardIssue, GuardResultOf, GuardRule, GuardSchema
 from .utils import kind_of, path_index, push_all
 
-class ArraySchema:
-  public constructor(item_schema = null):
+class ArraySchema implements ArrayGuard:
+  private item_schema: GuardSchema | null
+  private rules: GuardRule[] = []
+
+  public constructor(item_schema: GuardSchema | null = null):
     this.item_schema = item_schema
     this.rules = []
 
-  public of(schema):
+  public of(schema: GuardSchema) -> ArrayGuard:
     this.item_schema = schema
     return this
 
-  public min(size: int, message: string = ""):
+  public min(size: int, message: string = "") -> ArrayGuard:
     this.rules.push({ kind: "min", value: size, message: message })
     return this
 
-  public max(size: int, message: string = ""):
+  public max(size: int, message: string = "") -> ArrayGuard:
     this.rules.push({ kind: "max", value: size, message: message })
     return this
 
-  public length(size: int, message: string = ""):
+  public length(size: int, message: string = "") -> ArrayGuard:
     this.rules.push({ kind: "length", value: size, message: message })
     return this
 
-  public nonempty(message: string = ""):
+  public nonempty(message: string = "") -> ArrayGuard:
     return this.min(1, message)
 
-  public validate(value, path: string = ""):
-    issues = []
+  public validate(value: unknown, path: string = "") -> GuardResultOf<unknown[]>:
+    issues: GuardIssue[] = []
     if not Array.isArray(value):
       issues.push(issue(path, "array", "value must be an array", "array", kind_of(value)))
-      return invalid(issues)
+      return invalid<unknown[]>(issues)
 
     for rule of this.rules:
       if rule.kind == "min" and value.length < rule.value:
@@ -50,21 +53,19 @@ class ArraySchema:
         issues.push(issue(path, "length", msg, `length == ${rule.value}`, String(value.length)))
 
     schema = this.item_schema
-    if schema === null:
-      schema = any()
-
-    i = 0
-    while i < value.length:
-      result = schema.validate(value[i], path_index(path, i))
-      if not result.ok:
-        push_all(issues, result.issues)
-      i += 1
+    if schema !== null:
+      i = 0
+      while i < value.length:
+        result = schema.validate(value[i], path_index(path, i))
+        if not result.ok:
+          push_all(issues, result.issues)
+        i += 1
 
     if issues.length == 0:
-      return ok(value)
-    return invalid(issues)
+      return ok<unknown[]>(value)
+    return invalid<unknown[]>(issues)
 
-fn array(item_schema = null):
+fn make_array(item_schema: GuardSchema | null = null) -> ArrayGuard:
   return ArraySchema(item_schema)
 
 fn _items(size: int) -> string:

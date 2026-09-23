@@ -1,8 +1,42 @@
-from .array import ArraySchema, array
-from .boolean import BooleanSchema, boolean
+from .array import ArraySchema, make_array as _make_array
+from .boolean import BooleanSchema, make_boolean as _make_boolean
 from .core import AnySchema, EnumSchema, LiteralSchema, NullishSchema, NullableSchema, OptionalSchema, UnionSchema
-from .core import any, literal, nullable, nullish, one_of, optional, union
-from .number import NumberSchema, number
-from .object import ObjectSchema, object
+from .core import make_any as _make_any, make_literal as _make_literal, make_nullable as _make_nullable, make_nullish as _make_nullish, make_one_of as _make_one_of, make_optional as _make_optional, make_union as _make_union
+from .number import NumberSchema, make_number as _make_number
+from .object import ObjectSchema, make_object as _make_object
 from .result import format_issue, format_issues, from_issues, invalid, is_valid, issue, ok, parse, validate
-from .string import StringSchema, string
+from .string import StringSchema, make_string as _make_string
+from .types import AnyGuard, ArrayGuard, BooleanGuard, EnumGuard, GuardApi, GuardIssue, GuardObjectValue, GuardResult, GuardResultOf, GuardRule, GuardSchema, GuardShape, LiteralGuard, NullableGuard, NullishGuard, NumberGuard, ObjectGuard, OptionalGuard, StringGuard, UnionGuard
+
+fn _guard_ok(value: unknown) -> GuardResult:
+  return ok<unknown>(value)
+
+fn _guard_invalid(issues: GuardIssue[]) -> GuardResult:
+  return invalid<unknown>(issues)
+
+fn _guard_from_issues(value: unknown, issues: GuardIssue[]) -> GuardResult:
+  return from_issues<unknown>(value, issues)
+
+guard: GuardApi = {
+  any: _make_any,
+  array: _make_array,
+  boolean: _make_boolean,
+  format_issue: format_issue,
+  format_issues: format_issues,
+  from_issues: _guard_from_issues,
+  invalid: _guard_invalid,
+  is_valid: is_valid,
+  issue: issue,
+  literal: _make_literal,
+  nullable: _make_nullable,
+  nullish: _make_nullish,
+  number: _make_number,
+  object: _make_object,
+  ok: _guard_ok,
+  one_of: _make_one_of,
+  optional: _make_optional,
+  parse: parse,
+  string: _make_string,
+  union: _make_union,
+  validate: validate,
+}

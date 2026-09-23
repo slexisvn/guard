@@ -1,0 +1,105 @@
+type GuardIssue = {
+  path: string,
+  code: string,
+  message: string,
+  expected: string,
+  received: string,
+}
+
+type GuardResultOf<T> = {
+  ok: bool,
+  value: T | null,
+  issues: GuardIssue[],
+}
+
+type GuardResult = GuardResultOf<unknown>
+type GuardObjectValue = { [key: string]: unknown }
+type GuardShape = { [key: string]: GuardSchema }
+type GuardRule = { kind: string, value?: any, message: string }
+
+interface GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResult
+
+interface AnyGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResult
+
+interface LiteralGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResult
+
+interface EnumGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResult
+
+interface UnionGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResult
+
+interface OptionalGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResult
+
+interface NullableGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResult
+
+interface NullishGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResult
+
+interface StringGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResultOf<string>
+  min: (size: int, message?: string) -> StringGuard
+  max: (size: int, message?: string) -> StringGuard
+  length: (size: int, message?: string) -> StringGuard
+  nonempty: (message?: string) -> StringGuard
+  includes: (text: string, message?: string) -> StringGuard
+  starts_with: (text: string, message?: string) -> StringGuard
+  ends_with: (text: string, message?: string) -> StringGuard
+  email: (message?: string) -> StringGuard
+  one_of: (values: string[], message?: string) -> StringGuard
+
+interface NumberGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResultOf<float>
+  min: (size: float, message?: string) -> NumberGuard
+  max: (size: float, message?: string) -> NumberGuard
+  int: (message?: string) -> NumberGuard
+  positive: (message?: string) -> NumberGuard
+  nonnegative: (message?: string) -> NumberGuard
+  multiple_of: (step: float, message?: string) -> NumberGuard
+
+interface BooleanGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResultOf<bool>
+  true_only: (message?: string) -> BooleanGuard
+  false_only: (message?: string) -> BooleanGuard
+
+interface ArrayGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResultOf<unknown[]>
+  of: (schema: GuardSchema) -> ArrayGuard
+  min: (size: int, message?: string) -> ArrayGuard
+  max: (size: int, message?: string) -> ArrayGuard
+  length: (size: int, message?: string) -> ArrayGuard
+  nonempty: (message?: string) -> ArrayGuard
+
+interface ObjectGuard extends GuardSchema:
+  validate: (value: unknown, path?: string) -> GuardResultOf<GuardObjectValue>
+  strict: () -> ObjectGuard
+  passthrough: () -> ObjectGuard
+  extend: (extra_shape: GuardShape) -> ObjectGuard
+
+interface GuardApi:
+  any: () -> AnyGuard
+  array: (item_schema?: GuardSchema | null) -> ArrayGuard
+  boolean: () -> BooleanGuard
+  format_issue: (item: GuardIssue) -> string
+  format_issues: (issues: GuardIssue[]) -> string
+  from_issues: (value: unknown, issues: GuardIssue[]) -> GuardResult
+  invalid: (issues: GuardIssue[]) -> GuardResult
+  is_valid: (schema: GuardSchema, value: unknown) -> bool
+  issue: (path: string, code: string, message: string, expected?: string, received?: string) -> GuardIssue
+  literal: (value: unknown) -> LiteralGuard
+  nullable: (schema: GuardSchema) -> NullableGuard
+  nullish: (schema: GuardSchema) -> NullishGuard
+  number: () -> NumberGuard
+  object: (shape: GuardShape) -> ObjectGuard
+  ok: (value: unknown) -> GuardResult
+  one_of: (values: unknown[]) -> EnumGuard
+  optional: (schema: GuardSchema) -> OptionalGuard
+  parse: (schema: GuardSchema, value: unknown) -> unknown
+  string: () -> StringGuard
+  union: (schemas: GuardSchema[]) -> UnionGuard
+  validate: (schema: GuardSchema, value: unknown) -> GuardResult

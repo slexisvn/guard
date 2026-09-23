@@ -1,50 +1,53 @@
 from .result import issue, ok, invalid
+from .types import GuardIssue, GuardResultOf, GuardRule, StringGuard
 from .utils import kind_of, describe_value
 
-class StringSchema:
+class StringSchema implements StringGuard:
+  private rules: GuardRule[] = []
+
   public constructor():
     this.rules = []
 
-  public min(size: int, message: string = ""):
+  public min(size: int, message: string = "") -> StringGuard:
     this.rules.push({ kind: "min", value: size, message: message })
     return this
 
-  public max(size: int, message: string = ""):
+  public max(size: int, message: string = "") -> StringGuard:
     this.rules.push({ kind: "max", value: size, message: message })
     return this
 
-  public length(size: int, message: string = ""):
+  public length(size: int, message: string = "") -> StringGuard:
     this.rules.push({ kind: "length", value: size, message: message })
     return this
 
-  public nonempty(message: string = ""):
+  public nonempty(message: string = "") -> StringGuard:
     return this.min(1, message)
 
-  public includes(text: string, message: string = ""):
+  public includes(text: string, message: string = "") -> StringGuard:
     this.rules.push({ kind: "includes", value: text, message: message })
     return this
 
-  public starts_with(text: string, message: string = ""):
+  public starts_with(text: string, message: string = "") -> StringGuard:
     this.rules.push({ kind: "starts_with", value: text, message: message })
     return this
 
-  public ends_with(text: string, message: string = ""):
+  public ends_with(text: string, message: string = "") -> StringGuard:
     this.rules.push({ kind: "ends_with", value: text, message: message })
     return this
 
-  public email(message: string = ""):
+  public email(message: string = "") -> StringGuard:
     this.rules.push({ kind: "email", value: "", message: message })
     return this
 
-  public one_of(values, message: string = ""):
+  public one_of(values: string[], message: string = "") -> StringGuard:
     this.rules.push({ kind: "one_of", value: values, message: message })
     return this
 
-  public validate(value, path: string = ""):
-    issues = []
+  public validate(value: unknown, path: string = "") -> GuardResultOf<string>:
+    issues: GuardIssue[] = []
     if typeof value != "string":
       issues.push(issue(path, "string", "value must be a string", "string", kind_of(value)))
-      return invalid(issues)
+      return invalid<string>(issues)
 
     for rule of this.rules:
       if rule.kind == "min" and value.length < rule.value:
@@ -96,8 +99,8 @@ class StringSchema:
           issues.push(issue(path, "one_of", msg, rule.value.join(", "), describe_value(value)))
 
     if issues.length == 0:
-      return ok(value)
-    return invalid(issues)
+      return ok<string>(value)
+    return invalid<string>(issues)
 
 fn _looks_like_email(value: string) -> bool:
   text = value.trim()
@@ -121,5 +124,5 @@ fn _characters(size: int) -> string:
     return "character"
   return "characters"
 
-fn string():
+fn make_string() -> StringGuard:
   return StringSchema()

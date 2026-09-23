@@ -1,29 +1,33 @@
 from .result import issue, ok, invalid
+from .types import GuardIssue, GuardObjectValue, GuardResultOf, GuardShape, ObjectGuard
 from .utils import kind_of, is_plain_object, path_key, push_all
 
-class ObjectSchema:
-  public constructor(shape):
+class ObjectSchema implements ObjectGuard:
+  private shape: GuardShape
+  private mode: string
+
+  public constructor(shape: GuardShape):
     this.shape = shape
     this.mode = "passthrough"
 
-  public strict():
+  public strict() -> ObjectGuard:
     this.mode = "strict"
     return this
 
-  public passthrough():
+  public passthrough() -> ObjectGuard:
     this.mode = "passthrough"
     return this
 
-  public extend(extra_shape):
+  public extend(extra_shape: GuardShape) -> ObjectGuard:
     for key of Object.keys(extra_shape):
       this.shape[key] = extra_shape[key]
     return this
 
-  public validate(value, path: string = ""):
-    issues = []
+  public validate(value: unknown, path: string = "") -> GuardResultOf<GuardObjectValue>:
+    issues: GuardIssue[] = []
     if not is_plain_object(value):
       issues.push(issue(path, "object", "value must be an object", "object", kind_of(value)))
-      return invalid(issues)
+      return invalid<GuardObjectValue>(issues)
 
     for key of Object.keys(this.shape):
       schema = this.shape[key]
@@ -37,8 +41,8 @@ class ObjectSchema:
           issues.push(issue(path_key(path, key), "unknown_key", `unknown key '${key}'`, "known key", key))
 
     if issues.length == 0:
-      return ok(value)
-    return invalid(issues)
+      return ok<GuardObjectValue>(value)
+    return invalid<GuardObjectValue>(issues)
 
-fn object(shape):
+fn make_object(shape: GuardShape) -> ObjectGuard:
   return ObjectSchema(shape)

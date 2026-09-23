@@ -1,18 +1,21 @@
 from .result import issue, ok, invalid
+from .types import AnyGuard, EnumGuard, GuardResult, GuardSchema, LiteralGuard, NullableGuard, NullishGuard, OptionalGuard, UnionGuard
 from .utils import kind_of, describe_value
 
-class AnySchema:
-  public validate(value, path: string = ""):
-    return ok(value)
+class AnySchema implements AnyGuard:
+  public validate(value: unknown, path: string = "") -> GuardResult:
+    return ok<unknown>(value)
 
-class LiteralSchema:
-  public constructor(expected):
+class LiteralSchema implements LiteralGuard:
+  private expected: unknown
+
+  public constructor(expected: unknown):
     this.expected = expected
 
-  public validate(value, path: string = ""):
+  public validate(value: unknown, path: string = "") -> GuardResult:
     if value === this.expected:
-      return ok(value)
-    return invalid([
+      return ok<unknown>(value)
+    return invalid<unknown>([
       issue(
         path,
         "literal",
@@ -22,15 +25,17 @@ class LiteralSchema:
       ),
     ])
 
-class EnumSchema:
-  public constructor(values):
+class EnumSchema implements EnumGuard:
+  private values: unknown[]
+
+  public constructor(values: unknown[]):
     this.values = values
 
-  public validate(value, path: string = ""):
+  public validate(value: unknown, path: string = "") -> GuardResult:
     for candidate of this.values:
       if value === candidate:
-        return ok(value)
-    return invalid([
+        return ok<unknown>(value)
+    return invalid<unknown>([
       issue(
         path,
         "one_of",
@@ -40,19 +45,21 @@ class EnumSchema:
       ),
     ])
 
-class UnionSchema:
-  public constructor(schemas):
+class UnionSchema implements UnionGuard:
+  private schemas: GuardSchema[]
+
+  public constructor(schemas: GuardSchema[]):
     this.schemas = schemas
 
-  public validate(value, path: string = ""):
-    collected = []
+  public validate(value: unknown, path: string = "") -> GuardResult:
+    collected: string[] = []
     for schema of this.schemas:
       result = schema.validate(value, path)
       if result.ok:
         return result
       for item of result.issues:
         collected.push(item.message)
-    return invalid([
+    return invalid<unknown>([
       issue(
         path,
         "union",
@@ -62,52 +69,58 @@ class UnionSchema:
       ),
     ])
 
-class OptionalSchema:
-  public constructor(inner):
+class OptionalSchema implements OptionalGuard:
+  private inner: GuardSchema
+
+  public constructor(inner: GuardSchema):
     this.inner = inner
 
-  public validate(value, path: string = ""):
+  public validate(value: unknown, path: string = "") -> GuardResult:
     if typeof value == "undefined":
-      return ok(value)
+      return ok<unknown>(value)
     return this.inner.validate(value, path)
 
-class NullableSchema:
-  public constructor(inner):
+class NullableSchema implements NullableGuard:
+  private inner: GuardSchema
+
+  public constructor(inner: GuardSchema):
     this.inner = inner
 
-  public validate(value, path: string = ""):
+  public validate(value: unknown, path: string = "") -> GuardResult:
     if value === null:
-      return ok(value)
+      return ok<unknown>(value)
     return this.inner.validate(value, path)
 
-class NullishSchema:
-  public constructor(inner):
+class NullishSchema implements NullishGuard:
+  private inner: GuardSchema
+
+  public constructor(inner: GuardSchema):
     this.inner = inner
 
-  public validate(value, path: string = ""):
+  public validate(value: unknown, path: string = "") -> GuardResult:
     if typeof value == "undefined":
-      return ok(value)
+      return ok<unknown>(value)
     if value === null:
-      return ok(value)
+      return ok<unknown>(value)
     return this.inner.validate(value, path)
 
-fn any():
+fn make_any() -> AnyGuard:
   return AnySchema()
 
-fn literal(value):
+fn make_literal(value: unknown) -> LiteralGuard:
   return LiteralSchema(value)
 
-fn one_of(values):
+fn make_one_of(values: unknown[]) -> EnumGuard:
   return EnumSchema(values)
 
-fn union(schemas):
+fn make_union(schemas: GuardSchema[]) -> UnionGuard:
   return UnionSchema(schemas)
 
-fn optional(schema):
+fn make_optional(schema: GuardSchema) -> OptionalGuard:
   return OptionalSchema(schema)
 
-fn nullable(schema):
+fn make_nullable(schema: GuardSchema) -> NullableGuard:
   return NullableSchema(schema)
 
-fn nullish(schema):
+fn make_nullish(schema: GuardSchema) -> NullishGuard:
   return NullishSchema(schema)

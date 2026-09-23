@@ -1,6 +1,7 @@
 from .utils import label_path
+from .types import GuardIssue, GuardResult, GuardResultOf, GuardSchema
 
-fn issue(path: string, code: string, message: string, expected: string = "", received: string = ""):
+fn issue(path: string, code: string, message: string, expected: string = "", received: string = "") -> GuardIssue:
   return {
     path: path,
     code: code,
@@ -9,33 +10,33 @@ fn issue(path: string, code: string, message: string, expected: string = "", rec
     received: received,
   }
 
-fn ok(value):
+fn ok<T>(value: T) -> GuardResultOf<T>:
   return { ok: true, value: value, issues: [] }
 
-fn invalid(issues):
+fn invalid<T>(issues: GuardIssue[]) -> GuardResultOf<T>:
   return { ok: false, value: null, issues: issues }
 
-fn from_issues(value, issues):
+fn from_issues<T>(value: T, issues: GuardIssue[]) -> GuardResultOf<T>:
   if issues.length == 0:
     return ok(value)
-  return invalid(issues)
+  return invalid<T>(issues)
 
-fn validate(schema, value):
+fn validate(schema: GuardSchema, value: unknown) -> GuardResult:
   return schema.validate(value, "")
 
-fn is_valid(schema, value) -> bool:
+fn is_valid(schema: GuardSchema, value: unknown) -> bool:
   return validate(schema, value).ok
 
-fn parse(schema, value):
+fn parse(schema: GuardSchema, value: unknown) -> unknown:
   result = validate(schema, value)
   if not result.ok:
     throw format_issues(result.issues)
   return result.value
 
-fn format_issue(item) -> string:
+fn format_issue(item: GuardIssue) -> string:
   return `${label_path(item.path)}: ${item.message}`
 
-fn format_issues(issues) -> string:
+fn format_issues(issues: GuardIssue[]) -> string:
   lines = []
   for item of issues:
     lines.push(format_issue(item))
