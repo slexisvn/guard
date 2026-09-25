@@ -1,6 +1,6 @@
 {
   "name": "slexisvn.guard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Composable runtime validation schemas for Tera data.",
   "license": "MIT",
   "modules": "src",
